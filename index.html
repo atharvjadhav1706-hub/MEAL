@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#000000"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>80 KG Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@700&family=Sora:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #060608;
+  --surface: #0D0D12;
+  --card: rgba(18,18,26,0.7);
+  --card2: rgba(24,24,34,0.8);
+  --border: rgba(255,255,255,0.07);
+  --text: #F0F0F8;
+  --sub: #8888AA;
+  --glass-shadow: 0 8px 40px rgba(0,0,0,0.5);
+
+  --accent: #7B5CFF;
+  --accent2: #FF5F7E;
+  --gold: #FFD060;
+  --water: #22D3EE;
+  --green: #10F080;
+
+  --border-bright: rgba(255,255,255,0.15);
+  --text-sec: rgba(240,240,250,0.5);
+  --a-red: #FF3D5A;
+
+  --font-head: 'Sora', sans-serif;
+  --font-body: 'Sora', sans-serif;
+  --r: 22px;
+}
+
+.light {
+  --bg: #F0F0F8;
+  --surface: #FFFFFF;
+  --card: rgba(255,255,255,0.75);
+  --card2: rgba(255,255,255,0.9);
+  --border: rgba(0,0,0,0.07);
+  --text: #12122A;
+  --sub: #6666AA;
+  --glass-shadow: 0 8px 32px rgba(31,38,135,0.07);
+  --border-bright: #BBBBDD;
+  --text-sec: #6666AA;
+  --a-red: #E0002A;
+  --green: #00C060;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background .4s, color .4s;
+}
+
+/* NOISE TEXTURE OVERLAY */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
+
+/* GRADIENT ORBS */
+.orb { position: fixed; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0; }
+.o1 { width: 500px; height: 500px; background: radial-gradient(rgba(123,92,255,0.18), transparent 70%); top: -120px; left: -120px; animation: drift1 18s ease-in-out infinite alternate; }
+.o2 { width: 400px; height: 400px; background: radial-gradient(rgba(255,95,126,0.14), transparent 70%); bottom: 80px; right: -80px; animation: drift2 22s ease-in-out infinite alternate; }
+.o3 { width: 350px; height: 350px; background: radial-gradient(rgba(16,240,128,0.1), transparent 70%); top: 45%; left: 20%; animation: drift1 15s ease-in-out infinite alternate-reverse; }
+@keyframes drift1 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px, 35px) scale(1.1); } }
+@keyframes drift2 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-40px, -30px) scale(1.08); } }
+
+/* TOAST */
+#toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+  background: rgba(12,12,18,0.98); padding: 12px 24px; border-radius: 40px;
+  border: 1px solid var(--border-bright); color: var(--text);
+  font-size: 0.85rem; font-weight: 700; z-index: 10000;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6); font-family: var(--font-body);
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+  white-space: nowrap; letter-spacing: 0.2px;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+#offlineBadge {
+  position: fixed; top: 12px; right: 14px; z-index: 9999;
+  background: #FF3D5A; color: #fff; font-size: 10px; font-weight: 800;
+  padding: 4px 12px; border-radius: 20px; display: none; letter-spacing: 1px;
+}
+
+/* PAGE SYSTEM */
+#home { position: relative; z-index: 1; max-width: 460px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
+.page {
+  position: fixed; inset: 0; z-index: 100; background: var(--bg);
+  transform: translateX(105%); transition: transform .4s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.page.active { transform: translateX(0); }
+.page-inner { max-width: 460px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; height: 100%; }
+.page-scroll { flex: 1; overflow-y: auto; padding-bottom: 60px; -webkit-overflow-scrolling: touch; }
+.page-scroll::-webkit-scrollbar { width: 3px; }
+.page-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* HEADER */
+.hdr {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--bg);
+  padding: 20px 20px 16px;
+  backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+  border-bottom: 1px solid var(--border);
+}
+.hdr-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.logo {
+  font-family: var(--font-head); font-size: 30px; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: -1px;
+  filter: drop-shadow(0 3px 8px rgba(123,92,255,0.4));
+}
+.logo-date { font-size: 11px; color: var(--sub); letter-spacing: 0.5px; margin-top: 2px; font-weight: 500; }
+.hdr-right { display: flex; gap: 10px; align-items: center; }
+
+.streak-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, rgba(123,92,255,0.12), rgba(255,95,126,0.12));
+  border: 1px solid rgba(123,92,255,0.25); border-radius: 22px; padding: 8px 16px;
+  box-shadow: 0 4px 20px rgba(123,92,255,0.12);
+}
+.s-num { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: var(--accent); line-height: 1; }
+.s-lbl { font-size: 9px; color: var(--sub); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+.s-fire { font-size: 22px; display: inline-block; animation: firePulse 1.6s ease-in-out infinite; }
+
+.icon-btn {
+  width: 44px; height: 44px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; font-size: 20px; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: all .25s; color: var(--text); flex-shrink: 0;
+  backdrop-filter: blur(10px);
+}
+.icon-btn:hover { transform: scale(1.08); border-color: var(--accent); box-shadow: 0 6px 20px rgba(123,92,255,0.25); }
+
+/* ANIMATIONS */
+@keyframes firePulse {
+  0%, 100% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 6px rgba(255,95,126,0.5)); }
+  50% { transform: scale(1.18) rotate(4deg); filter: drop-shadow(0 0 18px rgba(255,95,126,0.9)); }
+}
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3)); }
+  50% { transform: translateY(-8px); filter: drop-shadow(0 16px 20px var(--glow-c, rgba(123,92,255,0.4))); }
+}
+@keyframes goldPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(255,208,96,0.5)); } }
+@keyframes targetSpin { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(8deg) scale(1.1); } 100% { transform: rotate(0) scale(1); } }
+@keyframes checkPop { 0% { transform: scale(0) rotate(-15deg); } 60% { transform: scale(1.3) rotate(5deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.shimmer-text {
+  background: linear-gradient(90deg, var(--accent), var(--accent2), #22D3EE, var(--accent));
+  background-size: 300% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; animation: shimmer 4s linear infinite;
+}
+.float-num { display: inline-block; animation: floatUp 4s ease-in-out infinite; }
+
+/* STATS BAR */
+.stats-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat-pill {
+  background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border);
+  border-radius: 18px; padding: 16px 10px; text-align: center;
+  box-shadow: var(--glass-shadow); animation: fadeUp .5s both;
+}
+.stat-pill-num { font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.stat-pill-lbl { font-size: 9px; color: var(--sub); text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; font-weight: 600; }
+.sp-cal { color: var(--accent); }
+.sp-water { color: var(--water); }
+.sp-streak { color: var(--gold); }
+
+/* QUOTE */
+.quote-card {
+  background: linear-gradient(135deg, rgba(123,92,255,0.08), rgba(255,95,126,0.08));
+  border: 1px solid rgba(123,92,255,0.18);
+  backdrop-filter: blur(20px); border-radius: var(--r);
+  padding: 18px 22px; margin-bottom: 14px;
+  animation: fadeUp .5s .05s both;
+}
+.quote-text { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.6; margin-bottom: 6px; font-style: italic; }
+.quote-author { font-size: 11px; color: var(--sub); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+/* GLASS CARD BASE */
+.card {
+  background: var(--card); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border); box-shadow: var(--glass-shadow);
+  border-radius: var(--r); padding: 22px; margin-bottom: 14px;
+  position: relative; overflow: hidden; animation: fadeUp .5s both;
+}
+.card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent 60%);
+  pointer-events: none;
+}
+
+/* CALORIE CARD */
+.cal-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+.cal-big {
+  font-family: var(--font-head); font-size: 56px; font-weight: 800; color: var(--accent); line-height: 1;
+  letter-spacing: -2px; --glow-c: rgba(123,92,255,0.5);
+}
+.cal-unit { font-size: 11px; color: var(--sub); margin-top: 6px; font-weight: 600; letter-spacing: 0.5px; }
+.cal-right { text-align: right; }
+.cal-rem { font-family: var(--font-head); font-size: 28px; font-weight: 800; color: var(--accent2); letter-spacing: -1px; }
+.cal-rlbl { font-size: 11px; color: var(--sub); font-weight: 600; }
+
+/* PROGRESS BAR */
+.pbar-wrap {
+  height: 12px; background: rgba(255,255,255,0.05); border-radius: 12px;
+  overflow: hidden; margin-bottom: 8px; border: 1px solid var(--border);
+}
+.light .pbar-wrap { background: rgba(0,0,0,0.05); }
+.pbar { height: 100%; border-radius: 12px; transition: width 1.2s cubic-bezier(.34,1.56,.64,1); position: relative; overflow: hidden; }
+.pbar::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+  animation: shimmer 2.5s linear infinite;
+}
+.pb-cal { background: linear-gradient(90deg, #7B5CFF, #FF5F7E); box-shadow: 0 0 20px rgba(123,92,255,0.5); }
+.pb-water { background: linear-gradient(90deg, #0EA5E9, #22D3EE); box-shadow: 0 0 20px rgba(34,211,238,0.5); }
+.plabel { display: flex; justify-content: space-between; font-size: 11px; color: var(--sub); font-weight: 600; }
+
+/* WATER CARD */
+.water-big {
+  font-family: var(--font-head); font-size: 44px; font-weight: 800; color: var(--water);
+  letter-spacing: -1.5px; --glow-c: rgba(34,211,238,0.5);
+}
+.water-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 18px; }
+.water-btn {
+  background: rgba(34,211,238,0.07); border: 1px solid rgba(34,211,238,0.25);
+  border-radius: 16px; padding: 16px 4px; color: var(--water); font-family: var(--font-head);
+  font-weight: 800; font-size: 17px; cursor: pointer; transition: all .3s cubic-bezier(.34,1.56,.64,1);
+  text-align: center;
+}
+.water-btn span { display: block; font-size: 10px; font-family: var(--font-body); font-weight: 600; opacity: .7; margin-top: 3px; }
+.water-btn:hover { transform: translateY(-5px) scale(1.06); box-shadow: 0 10px 25px rgba(34,211,238,0.25); background: rgba(34,211,238,0.15); }
+.water-btn:active { transform: scale(.9); }
+.water-reset {
+  margin-top: 12px; width: 100%; background: transparent; border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px; color: var(--sub); font-family: var(--font-body);
+  font-weight: 600; font-size: 12px; cursor: pointer; transition: all .25s;
+}
+.water-reset:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(255,95,126,0.08); }
+
+/* NAV CARDS */
+.nav-card {
+  background: var(--card); backdrop-filter: blur(24px); border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow); border-radius: var(--r); padding: 20px;
+  margin-bottom: 14px; position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 18px; cursor: pointer;
+  transition: all .3s cubic-bezier(0.16,1,.3,1); animation: fadeUp .5s both;
+}
+.nav-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent 60%);
+  pointer-events: none;
+}
+.nav-card:hover { transform: translateY(-5px); border-color: rgba(123,92,255,0.4); box-shadow: 0 20px 50px rgba(123,92,255,0.15); }
+.nav-card:active { transform: scale(.97); }
+.nav-icon {
+  width: 58px; height: 58px; border-radius: 18px; display: flex; align-items: center;
+  justify-content: center; font-size: 30px; flex-shrink: 0; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+.nav-info { flex: 1; }
+.nav-title { font-family: var(--font-head); font-size: 17px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.3px; }
+.nav-sub { font-size: 12px; color: var(--sub); font-weight: 500; }
+.nav-arrow { font-size: 26px; color: var(--sub); transition: transform .3s cubic-bezier(.34,1.56,.64,1), color .25s; }
+.nav-card:hover .nav-arrow { transform: translateX(6px); color: var(--accent); }
+.ni-meals { background: linear-gradient(135deg, #7B5CFF, #FF5F7E); }
+.ni-history { background: linear-gradient(135deg, #FFD060, #FF8E53); }
+.ni-maida { background: linear-gradient(135deg, #FFD060, #FFA500); }
+
+/* HIGHLIGHT BAR ON NAV CARD */
+.nav-card-accent {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 60%; border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, var(--accent), var(--accent2));
+  opacity: 0; transition: opacity .3s;
+}
+.nav-card:hover .nav-card-accent { opacity: 1; }
+
+/* SUB-PAGE SHARED */
+.page-hdr {
+  display: flex; align-items: center; gap: 14px; padding: 20px 20px 16px;
+  position: sticky; top: 0; z-index: 50;
+  background: var(--bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+  border-bottom: 1px solid var(--border);
+}
+.back-btn {
+  width: 44px; height: 44px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; font-size: 22px; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: all .25s; color: var(--text); flex-shrink: 0;
+}
+.back-btn:hover { border-color: var(--accent); transform: scale(1.08); box-shadow: 0 4px 15px rgba(123,92,255,0.2); }
+.page-title {
+  font-family: var(--font-head); font-size: 24px; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: -0.5px;
+}
+.pcontent { padding: 22px 20px 60px; }
+.sec-lbl {
+  font-family: var(--font-head); font-size: 15px; font-weight: 800;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.3px;
+}
+
+/* SETTINGS */
+.tog-row { display: flex; justify-content: space-between; align-items: center; }
+.tog-lbl { font-size: 15px; font-weight: 700; }
+.tog {
+  width: 58px; height: 32px; border-radius: 16px; background: rgba(255,255,255,0.1);
+  border: 1px solid var(--border); cursor: pointer; position: relative; transition: all .3s;
+}
+.tog.on { background: linear-gradient(135deg, var(--accent), var(--accent2)); border-color: transparent; box-shadow: 0 4px 15px rgba(123,92,255,0.35); }
+.tog-knob {
+  position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; transition: left .3s cubic-bezier(.34,1.56,.64,1); box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.tog.on .tog-knob { left: 30px; }
+
+/* IMPORT/EXPORT */
+.import-box {
+  background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border);
+  border-radius: 22px; padding: 22px; margin-bottom: 16px;
+}
+.import-box h3 { font-size: 15px; font-weight: 800; font-family: var(--font-head); color: var(--text); margin-bottom: 6px; }
+.import-box p { font-size: 12.5px; color: var(--sub); margin-bottom: 16px; line-height: 1.6; }
+
+.import-tabs {
+  display: flex; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 4px; gap: 4px;
+  border: 1px solid var(--border); margin-bottom: 16px;
+}
+.light .import-tabs { background: rgba(0,0,0,0.05); }
+.imp-tab {
+  flex: 1; padding: 10px 0; border-radius: 8px; border: none;
+  font-family: var(--font-body); font-weight: 700; font-size: 13px; cursor: pointer;
+  transition: all .3s; background: transparent; color: var(--sub);
+}
+.imp-tab.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; box-shadow: 0 4px 15px rgba(123,92,255,0.35);
+}
+
+.import-textarea {
+  width: 100%; height: 140px; padding: 16px;
+  background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+  color: var(--green); border-radius: 14px; margin-bottom: 12px;
+  font-family: monospace; font-size: 0.82rem; resize: none; outline: none;
+  transition: border-color .3s, box-shadow .3s; line-height: 1.6;
+}
+.light .import-textarea { background: rgba(255,255,255,0.6); }
+.import-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(123,92,255,0.12); }
+.import-hint {
+  font-size: 11.5px; color: var(--sub); margin-bottom: 12px; line-height: 1.6;
+  background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px 14px; border: 1px solid var(--border);
+}
+.import-hint code { color: var(--green); font-size: 11px; }
+
+.import-btn {
+  width: 100%; padding: 14px; background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-bright); color: var(--text);
+  font-weight: 700; font-size: 14px; border-radius: 14px; cursor: pointer;
+  transition: all .3s; font-family: var(--font-body);
+}
+.import-btn:hover { border-color: var(--accent); color: #fff; background: var(--accent); box-shadow: 0 6px 25px rgba(123,92,255,0.35); }
+.import-btn:active { transform: scale(.97); }
+
+/* DANGER */
+.danger-card {
+  background: linear-gradient(135deg, rgba(255,61,90,0.07), transparent);
+  border: 1px solid rgba(255,61,90,0.25); border-radius: 22px; padding: 22px; margin-top: 20px;
+  backdrop-filter: blur(10px);
+}
+.danger-title { font-size: 11px; font-weight: 800; color: #FF3D5A; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; }
+.btn-danger {
+  width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,61,90,0.35);
+  background: rgba(255,61,90,0.04); color: #FF3D5A; font-family: var(--font-body);
+  font-weight: 700; font-size: 14px; cursor: pointer; transition: all .3s; margin-bottom: 10px;
+}
+.btn-danger:last-child { margin-bottom: 0; }
+.btn-danger:hover { background: rgba(255,61,90,0.12); border-color: #FF3D5A; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,61,90,0.2); }
+.btn-warning { color: #FF9F0A; border-color: rgba(255,159,10,0.3); background: rgba(255,159,10,0.04); }
+.btn-warning:hover { background: rgba(255,159,10,0.12); border-color: #FF9F0A; box-shadow: 0 6px 20px rgba(255,159,10,0.2); }
+
+/* QUICK ADD FORM */
+.quick-form {
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border);
+  padding: 22px; border-radius: var(--r); position: relative;
+}
+.quick-form input {
+  background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 14px; padding: 14px 18px; font-family: var(--font-body);
+  font-size: 14px; outline: none; width: 100%; transition: all .3s; font-weight: 500;
+}
+.light .quick-form input { background: rgba(255,255,255,0.6); }
+.quick-form input::placeholder { color: var(--sub); }
+.quick-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(123,92,255,0.1); }
+.qf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.time-label-row {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 18px; cursor: pointer; transition: all .3s; position: relative;
+}
+.light .time-label-row { background: rgba(255,255,255,0.6); }
+.time-label-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(123,92,255,0.1); }
+.time-icon { font-size: 18px; flex-shrink: 0; }
+.time-input-wrapper { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.time-label-text { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+.time-display { font-size: 14px; font-weight: 700; color: var(--text); }
+.time-real-input { position: absolute; opacity: 0; width: 1px; height: 1px; left: 0; }
+
+/* AUTOCOMPLETE */
+.autocomplete-items {
+  position: absolute; top: calc(100% + 10px); left: 0; right: 0;
+  z-index: 1000; max-height: 280px; overflow-y: auto;
+  display: none; flex-direction: column; gap: 8px;
+  background: rgba(12,12,22,0.98); backdrop-filter: blur(30px);
+  border: 1px solid var(--border-bright); border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7); padding: 12px;
+}
+.autocomplete-items::-webkit-scrollbar { width: 4px; }
+.autocomplete-items::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
+.ac-card {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 16px; cursor: pointer; transition: all .3s cubic-bezier(.16,1,.3,1);
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.ac-card:hover { border-color: var(--accent); background: rgba(123,92,255,0.1); transform: translateY(-2px); }
+.ac-info { display: flex; flex-direction: column; gap: 6px; flex: 1; overflow: hidden; }
+.ac-title-row { display: flex; align-items: center; gap: 8px; }
+.ac-title { font-size: .97rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-type-badge {
+  font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+  background: rgba(123,92,255,0.15); color: var(--accent); padding: 3px 9px; border-radius: 8px;
+}
+.ac-stats { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.ac-cal { font-family: var(--font-head); font-size: 1.2rem; font-weight: 800; color: var(--text); }
+.ac-unit { font-size: 0.72rem; color: var(--sub); font-weight: 600; margin-top: 2px; }
+
+/* MEALS PAGE */
+.mini-cal {
+  background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px 24px; margin-bottom: 22px;
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: var(--glass-shadow);
+}
+.mc-num { font-family: var(--font-head); font-size: 34px; font-weight: 800; line-height: 1.1; letter-spacing: -1px; }
+.mc-lbl { font-size: 12px; color: var(--sub); font-weight: 600; margin-top: 4px; }
+.meal-list { display: flex; flex-direction: column; gap: 14px; }
+
+/* MEAL CARD */
+.meal-card {
+  background: var(--card2); backdrop-filter: blur(16px); border: 1px solid var(--border);
+  border-radius: var(--r); position: relative; overflow: hidden;
+  transition: all .4s cubic-bezier(.16,1,.3,1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2); animation: fadeUp .5s both;
+}
+.meal-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: var(--accent-color, var(--border)); border-radius: 5px 0 0 5px;
+}
+.meal-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.12); box-shadow: 0 16px 40px rgba(0,0,0,0.3); }
+.meal-card.checked { opacity: .38; filter: grayscale(.9); }
+.meal-card.highlight {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 1px var(--accent-color), 0 12px 45px rgba(var(--accent-rgb), .25) !important;
+  transform: scale(1.02);
+}
+.next-badge {
+  display: none; position: absolute; top: 0; right: 60px;
+  background: var(--accent-color); color: #000; font-size: 9px;
+  font-weight: 900; padding: 6px 14px; border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px; text-transform: uppercase; letter-spacing: 1.2px; z-index: 10;
+}
+.meal-card.highlight .next-badge { display: block; }
+.mc-content { padding: 20px; position: relative; }
+.mc-top { display: flex; align-items: center; margin-bottom: 10px; gap: 10px; padding-right: 50px; }
+.mc-time { color: var(--accent-color); font-weight: 800; font-size: .78rem; text-transform: uppercase; letter-spacing: 1.2px; flex-shrink: 0; }
+.mc-cal {
+  background: rgba(128,128,128,.12); color: var(--text); padding: 4px 12px;
+  border-radius: 10px; font-weight: 700; font-size: .73rem; border: 1px solid var(--border); flex-shrink: 0;
+}
+.mc-title { font-size: 1.2rem; font-weight: 800; color: var(--text); margin-bottom: 16px; letter-spacing: -.3px; line-height: 1.3; padding-right: 50px; }
+.ing-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.04); gap: 12px;
+}
+.ing-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.ing-left { display: flex; align-items: center; color: var(--text); font-size: .88rem; font-weight: 500; flex: 1; }
+.ing-bullet { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-color); margin-right: 12px; flex-shrink: 0; box-shadow: 0 0 8px var(--accent-color); }
+.ing-tag { background: rgba(255,255,255,0.05); font-weight: 700; font-size: .73rem; padding: 4px 12px; border-radius: 10px; border: 1px solid var(--border); color: var(--sub); white-space: nowrap; }
+.mchk {
+  position: absolute; top: 18px; right: 18px; width: 38px; height: 38px;
+  border-radius: 50%; border: 2px solid var(--border); background: rgba(0,0,0,0.2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .4s cubic-bezier(.34,1.56,.64,1); font-size: 1.1rem;
+  color: transparent; user-select: none; z-index: 20;
+}
+.mchk:active { transform: scale(.78); }
+.mchk.on { background: var(--green); border-color: var(--green); color: #000; box-shadow: 0 0 30px rgba(16,240,128,.5); animation: checkPop .4s cubic-bezier(.34,1.56,.64,1); }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--sub); }
+.empty-icon { font-size: 70px; margin-bottom: 16px; opacity: .8; }
+.btn-main {
+  width: 100%; padding: 18px; border: none; border-radius: 18px;
+  font-family: var(--font-body); font-weight: 800; font-size: 15px; cursor: pointer;
+  color: #fff; transition: all .3s cubic-bezier(.34,1.56,.64,1);
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 10px 30px rgba(123,92,255,0.4); letter-spacing: 0.3px;
+}
+.btn-main:hover { transform: translateY(-4px); box-shadow: 0 16px 45px rgba(123,92,255,0.55); }
+.btn-main:active { transform: scale(.96); }
+
+/* DELETE MEAL */
+.del-meal {
+  position: absolute; bottom: 16px; right: 18px; width: 30px; height: 30px;
+  border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--sub); transition: all .3s; z-index: 21;
+}
+.del-meal:hover { border-color: #FF3D5A; color: #FF3D5A; background: rgba(255,61,90,0.12); transform: scale(1.15); }
+
+/* NO MAIDA PAGE */
+.btn-mark {
+  width: 100%; padding: 20px; border-radius: 22px; border: 2px solid rgba(255,208,96,0.3);
+  cursor: pointer; font-family: var(--font-head); font-size: 18px; font-weight: 800;
+  background: linear-gradient(135deg, rgba(255,208,96,0.08), rgba(255,165,0,0.08)); color: var(--gold);
+  transition: all .4s cubic-bezier(.34,1.56,.64,1); letter-spacing: -0.3px;
+}
+.btn-mark:hover { background: linear-gradient(135deg, rgba(255,208,96,0.18), rgba(255,165,0,0.18)); transform: translateY(-5px); box-shadow: 0 15px 40px rgba(255,208,96,0.3); border-color: var(--gold); }
+.btn-mark:active { transform: scale(.96); }
+.btn-mark.marked { border-color: var(--gold); background: linear-gradient(135deg, rgba(255,208,96,0.22), rgba(255,165,0,0.22)); box-shadow: 0 0 30px rgba(255,208,96,0.35); }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.chip { background: rgba(255,208,96,0.08); border: 1px solid rgba(255,208,96,0.28); border-radius: 12px; padding: 8px 14px; font-size: 12px; color: var(--gold); font-weight: 700; }
+
+/* HISTORY */
+.h-card {
+  background: var(--card2); backdrop-filter: blur(16px); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 24px; margin-bottom: 16px; position: relative; overflow: hidden;
+  animation: fadeUp .5s both; box-shadow: var(--glass-shadow);
+}
+.h-card::after {
+  content: ''; position: absolute; top: -60px; right: -60px; width: 160px; height: 160px;
+  border-radius: 50%; background: radial-gradient(rgba(123,92,255,0.12), transparent); pointer-events: none;
+}
+.h-date { font-family: var(--font-head); font-size: 16px; font-weight: 800; margin-bottom: 14px; letter-spacing: -.3px; }
+.h-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+.h-stat {
+  background: rgba(0,0,0,0.2); border-radius: 16px; padding: 18px 12px; border: 1px solid var(--border); text-align: center;
+}
+.light .h-stat { background: rgba(255,255,255,0.5); }
+.h-sn { font-family: var(--font-head); font-size: 28px; font-weight: 800; }
+.h-sl { font-size: 10.5px; color: var(--sub); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; font-weight: 700; }
+.h-badge { position: absolute; top: 18px; right: 18px; font-size: 26px; filter: drop-shadow(0 4px 8px rgba(255,208,96,0.5)); }
+.h-empty { text-align: center; padding: 80px 20px; color: var(--sub); }
+.h-empty-icon { font-size: 70px; margin-bottom: 16px; opacity: .8; }
+
+/* WEIGHT TRACKER */
+.weight-tracker-card {
+  background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 26px; margin-bottom: 16px; box-shadow: var(--glass-shadow);
+  animation: fadeUp .5s both;
+}
+.weight-entry-row { display: flex; gap: 12px; margin-top: 18px; }
+.weight-input {
+  flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 16px; padding: 16px;
+  font-family: var(--font-head); font-size: 16px; font-weight: 800; outline: none; transition: all .3s;
+}
+.light .weight-input { background: rgba(255,255,255,0.6); }
+.weight-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(123,92,255,0.1); }
+.weight-log-btn {
+  padding: 16px 22px; border: none; border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; transition: all .3s cubic-bezier(.34,1.56,.64,1);
+  font-family: var(--font-body); white-space: nowrap; box-shadow: 0 6px 20px rgba(123,92,255,0.35);
+}
+.weight-log-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(123,92,255,0.5); }
+.weight-log-btn:active { transform: scale(.96); }
+.weight-history-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.weight-entry {
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 16px; padding: 14px 18px; transition: all .25s;
+}
+.weight-entry:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); }
+.we-date { font-size: 12px; color: var(--sub); font-weight: 600; }
+.we-val { font-family: var(--font-head); font-size: 18px; font-weight: 800; }
+.we-diff { font-size: 11.5px; font-weight: 800; padding: 4px 10px; border-radius: 10px; }
+.we-down { color: var(--green); background: rgba(16,240,128,0.1); border: 1px solid rgba(16,240,128,0.2); }
+.we-up { color: #FF3D5A; background: rgba(255,61,90,0.1); border: 1px solid rgba(255,61,90,0.2); }
+.we-same { color: var(--sub); background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
+.weight-goal-bar { margin-top: 20px; }
+.wg-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); margin-bottom: 8px; font-weight: 600; }
+.current-wt-big {
+  font-family: var(--font-head); font-size: 50px; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--water));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  --glow-c: rgba(34,211,238,0.3); letter-spacing: -2px;
+}
+.target-info { font-size: 13px; color: var(--sub); margin-top: 10px; font-weight: 500; }
+.to-go { color: var(--green); font-weight: 800; }
+
+/* STRATEGY PAGE */
+.memo-intro { font-size: 14px; margin-bottom: 24px; color: var(--sub); line-height: 1.7; }
+.docket-card { background: var(--card2); backdrop-filter: blur(16px); border-radius: var(--r); margin-bottom: 20px; padding: 24px; box-shadow: var(--glass-shadow); }
+.border-standard { border: 1px solid var(--border); }
+.border-green { border: 1px solid rgba(16,240,128,0.25); background: linear-gradient(180deg, rgba(16,240,128,0.04), transparent 40%); }
+.border-blue { border: 1px solid rgba(34,211,238,0.25); background: linear-gradient(180deg, rgba(34,211,238,0.04), transparent 40%); }
+.docket-header { font-family: var(--font-head); font-weight: 800; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.text-white { color: var(--text); }
+.text-green { color: var(--green); }
+.text-blue { color: var(--water); }
+.docket-body-text { font-size: 13px; color: var(--sub); margin-bottom: 20px; line-height: 1.7; }
+.highlight-text { color: var(--green); font-size: 13.5px; font-weight: 700; line-height: 1.7; margin-bottom: 20px; }
+.week-container { border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 18px; margin-top: 10px; margin-bottom: 18px; }
+.week-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+.comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.scenario-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.light .scenario-box { background: rgba(255,255,255,0.5); }
+.scenario-title { font-size: 11px; text-transform: uppercase; color: var(--sub); font-weight: 800; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; letter-spacing: 0.5px; }
+.data-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.data-line:last-child { margin-bottom: 0; }
+.data-label { font-size: 11px; color: var(--sub); text-transform: uppercase; font-weight: 600; }
+.data-value { font-size: 13.5px; font-weight: 800; color: var(--text); }
+.val-cal { color: var(--gold); }
+.val-wt { color: var(--water); }
+
+/* LOADING SPINNER */
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+</style>
+</head>
+<body>
+
+<div id="offlineBadge">📵 OFFLINE</div>
+<div id="toast"></div>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+<div class="orb o3"></div>
+
+<div id="home">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div>
+        <div class="logo shimmer-text">80 KG</div>
+        <div class="logo-date" id="hdrDate"></div>
+      </div>
+      <div class="hdr-right">
+        <div class="streak-pill">
+          <span class="s-fire">🔥</span>
+          <div>
+            <div class="s-num" id="streakNum">0</div>
+            <div class="s-lbl">streak</div>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="openPage('settingsPage')" title="Settings">⚙️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content" style="padding: 0 18px;">
+
+    <div class="stats-bar" style="margin-top:14px;animation-delay:.02s">
+      <div class="stat-pill">
+        <div class="stat-pill-num sp-cal" id="statAvgCal">—</div>
+        <div class="stat-pill-lbl">avg kcal</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-num sp-water" id="statDaysLogged">0</div>
+        <div class="stat-pill-lbl">days logged</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-num sp-streak">🏆 <span id="statMaida">0</span></div>
+        <div class="stat-pill-lbl">no maida</div>
+      </div>
+    </div>
+
+    <div class="quote-card">
+      <div class="quote-text" id="quoteText"></div>
+      <div class="quote-author" id="quoteAuthor"></div>
+    </div>
+
+    <div class="card" style="animation-delay:.04s">
+      <div class="cal-row">
+        <div>
+          <div class="cal-big float-num" id="calConsumed" style="--glow-c:rgba(123,92,255,0.5)">0</div>
+          <div class="cal-unit">kcal consumed today</div>
+        </div>
+        <div class="cal-right">
+          <div class="cal-rem" id="calRemain">0</div>
+          <div class="cal-rlbl">remaining</div>
+          <div class="cal-rlbl" id="calTotalLbl" style="margin-top:6px;font-size:10.5px;opacity:.8;"></div>
+        </div>
+      </div>
+      <div class="pbar-wrap"><div class="pbar pb-cal" id="calBar" style="width:0%"></div></div>
+      <div class="plabel">
+        <span>0</span>
+        <span id="calPct">0%</span>
+        <span id="calGoalLabel" onclick="editCalTarget()" style="cursor:pointer;text-decoration:underline dotted;font-weight:700;" title="Tap to edit target">2800 kcal ✎</span>
+      </div>
+    </div>
+
+    <div class="card" style="animation-delay:.07s">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="sec-lbl" style="margin-bottom:0;">💧 Hydration</div>
+        <div style="font-size:12px;color:var(--sub);font-weight:600;">Goal: 5000 ml</div>
+      </div>
+      <div class="water-big float-num" id="waterAmt" style="--glow-c:rgba(34,211,238,0.5)">0 ml</div>
+      <div class="pbar-wrap" style="margin:16px 0 10px"><div class="pbar pb-water" id="waterBar" style="width:0%"></div></div>
+      <div class="plabel"><span>0</span><span id="waterPct">0%</span><span>5000 ml</span></div>
+      <div class="water-grid">
+        <button class="water-btn" onclick="addWater(200)">+200<span>ml</span></button>
+        <button class="water-btn" onclick="addWater(300)">+300<span>ml</span></button>
+        <button class="water-btn" onclick="addWater(400)">+400<span>ml</span></button>
+        <button class="water-btn" onclick="addWater(500)">+500<span>ml</span></button>
+      </div>
+      <button class="water-reset" onclick="resetWater()">↺ Reset Water</button>
+    </div>
+
+    <div class="nav-card" style="animation-delay:.10s" onclick="openPage('mealsPage')">
+      <div class="nav-card-accent"></div>
+      <div class="nav-icon ni-meals">🍽</div>
+      <div class="nav-info">
+        <div class="nav-title" id="navMealTitle">Today's Meals</div>
+        <div class="nav-sub" id="navMealSub">Tap to view &amp; track your meals</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </div>
+
+    <div class="nav-card" style="animation-delay:.13s" onclick="openPage('weightPage')">
+      <div class="nav-card-accent"></div>
+      <div class="nav-icon" style="background:linear-gradient(135deg,#10F080,#22D3EE);">⚖️</div>
+      <div class="nav-info">
+        <div class="nav-title">Weight Tracker</div>
+        <div class="nav-sub" id="weightNavSub">Log your daily weight</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </div>
+
+    <div class="nav-card" style="animation-delay:.16s" onclick="openPage('maidaPage')">
+      <div class="nav-card-accent"></div>
+      <div class="nav-icon ni-maida">🏆</div>
+      <div class="nav-info">
+        <div class="nav-title">No Maida Days</div>
+        <div class="nav-sub" id="maidaNavSub">Tap to mark &amp; view history</div>
+      </div>
+      <div style="font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--gold);margin-right:4px;animation:goldPulse 3s ease-in-out infinite;" id="maidaCntMain">0</div>
+      <div class="nav-arrow">›</div>
+    </div>
+
+    <div class="nav-card" style="animation-delay:.19s" onclick="openPage('historyPage')">
+      <div class="nav-card-accent"></div>
+      <div class="nav-icon ni-history">📅</div>
+      <div class="nav-info">
+        <div class="nav-title">History</div>
+        <div class="nav-sub" id="navHistSub">View past days &amp; your progress</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </div>
+
+    <div class="nav-card" style="animation-delay:.22s" onclick="openPage('strategyPage')">
+      <div class="nav-card-accent"></div>
+      <div class="nav-icon" style="background:linear-gradient(135deg,var(--water),#0EA5E9);">🎯</div>
+      <div class="nav-info">
+        <div class="nav-title">Milestone Strategy</div>
+        <div class="nav-sub">Central Calorie Committee Updates</div>
+      </div>
+      <div class="nav-arrow">›</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MEALS PAGE -->
+<div class="page" id="mealsPage">
+  <div class="page-inner">
+    <div class="page-hdr">
+      <button class="back-btn" onclick="closePage('mealsPage')">←</button>
+      <div class="page-title" id="mealsPageTitle">Today's Meals</div>
+    </div>
+    <div class="page-scroll">
+      <div class="pcontent">
+        <div class="mini-cal">
+          <div>
+            <div class="mc-num float-num" id="mp-cons" style="color:var(--accent);--glow-c:rgba(123,92,255,0.4)">0</div>
+            <div class="mc-lbl">kcal consumed</div>
+          </div>
+          <div style="text-align:right">
+            <div class="mc-num float-num" id="mp-rem" style="color:var(--accent2);--glow-c:rgba(255,95,126,0.4)">0</div>
+            <div class="mc-lbl">remaining</div>
+          </div>
+        </div>
+        <div class="sec-lbl">🍽 Your Meal Plan</div>
+        <div id="mealList" class="meal-list"></div>
+        <div style="margin-top:32px;margin-bottom:32px;">
+          <div class="sec-lbl">⚡ Add Extra Food</div>
+          <div class="import-hint" style="margin-bottom:12px;">Search your food database. Enter weight to auto-calculate calories!</div>
+          <div class="quick-form">
+            <div class="time-label-row" onclick="document.getElementById('qTimeReal').showPicker()">
+              <span class="time-icon">🕐</span>
+              <div class="time-input-wrapper">
+                <span class="time-label-text">Meal Time</span>
+                <span class="time-display" id="timeDisplay">Tap to set time</span>
+              </div>
+              <input type="time" id="qTimeReal" class="time-real-input" oninput="updateTimeDisplay()"/>
+            </div>
+            <div style="position:relative;">
+              <input type="text" id="qName" placeholder="🔍 Search food (e.g. Paneer, Oats)" oninput="searchFood()" autocomplete="off"/>
+              <div id="autocomplete-list" class="autocomplete-items"></div>
+            </div>
+            <div class="qf-row">
+              <input type="number" id="qWeight" placeholder="Weight (grams)" oninput="calcCals()"/>
+              <input type="number" id="qCal" placeholder="Total kcal"/>
+            </div>
+            <button class="import-btn" style="margin-top:4px;" onclick="submitQuickMeal()">+ Add to Today's List</button>
+          </div>
+        </div>
+        <button class="btn-main" id="saveBtn" onclick="saveToHistory()">💾 Save Today's Progress</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIDA PAGE -->
+<div class="page" id="maidaPage">
+  <div class="page-inner">
+    <div class="page-hdr">
+      <button class="back-btn" onclick="closePage('maidaPage')">←</button>
+      <div class="page-title">No Maida Challenge</div>
+    </div>
+    <div class="page-scroll">
+      <div class="pcontent">
+        <div style="text-align:center;padding:40px 20px 40px;">
+          <div style="font-size:80px;margin-bottom:16px;display:inline-block;animation:goldPulse 3s ease-in-out infinite;">🏆</div>
+          <div style="font-family:var(--font-head);font-size:76px;font-weight:800;color:var(--gold);letter-spacing:-3px;display:block;animation:goldPulse 3s 0.5s ease-in-out infinite;" id="maidaCntPage">0</div>
+          <div style="font-size:13px;color:var(--sub);margin-top:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Days of Clean Eating</div>
+        </div>
+        <button class="btn-mark" id="maidaBtn" onclick="markNoMaida()">✅ Mark Today as No-Maida Day!</button>
+        <div class="sec-lbl" style="margin-top:42px">Recent Milestones</div>
+        <div class="chips" id="maidaChips"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="historyPage">
+  <div class="page-inner">
+    <div class="page-hdr">
+      <button class="back-btn" onclick="closePage('historyPage')">←</button>
+      <div class="page-title">History</div>
+    </div>
+    <div class="page-scroll">
+      <div class="pcontent">
+        <div id="historyList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WEIGHT PAGE -->
+<div class="page" id="weightPage">
+  <div class="page-inner">
+    <div class="page-hdr">
+      <button class="back-btn" onclick="closePage('weightPage')">←</button>
+      <div class="page-title">Weight Tracker</div>
+    </div>
+    <div class="page-scroll">
+      <div class="pcontent">
+        <div class="weight-tracker-card">
+          <div class="sec-lbl" style="margin-bottom:10px">⚖️ Current Weight</div>
+          <div class="current-wt-big float-num" id="currentWtDisplay" style="--glow-c:rgba(34,211,238,0.3)">— kg</div>
+          <div class="target-info">Target: <span class="to-go">80.0 kg</span> · <span id="toGoKg" class="to-go">— kg to go</span></div>
+          <div class="weight-goal-bar" id="wtGoalBarWrap" style="display:none">
+            <div class="wg-label"><span>80 kg (goal)</span><span id="wtStartLbl">—</span></div>
+            <div class="pbar-wrap" style="height:12px"><div class="pbar" id="wtGoalBar" style="width:0%;background:linear-gradient(90deg,var(--green),var(--water));box-shadow:0 0 15px rgba(16,240,128,0.5);"></div></div>
+          </div>
+          <div class="weight-entry-row">
+            <input type="number" step="0.1" class="weight-input" id="weightInput" placeholder="Enter weight in kg"/>
+            <button class="weight-log-btn" onclick="logWeight()">📌 Log</button>
+          </div>
+        </div>
+        <div class="sec-lbl">📊 Weight Log</div>
+        <div class="weight-history-list" id="weightHistList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STRATEGY PAGE -->
+<div class="page" id="strategyPage">
+  <div class="page-inner">
+    <div class="page-hdr">
+      <button class="back-btn" onclick="closePage('strategyPage')">←</button>
+      <div class="page-title">Milestone Strategy</div>
+    </div>
+    <div class="page-scroll">
+      <div class="pcontent">
+        <div class="memo-intro">This memorandum serves to provide the daily operational update regarding the final stage of your physical recomposition parameters, targeting exactly 80.0 kg by August 2026.</div>
+        <div class="docket-card border-standard">
+          <div class="docket-header text-white">📈 I. TRANSITION SUBMISSION &amp; REVIEW</div>
+          <div class="docket-body-text">On February 23rd, for metabolic convenience and to streamline the deficit process, we are initiating Phase 1. This prevents immediate fatigue while generating initial water-weight drop.</div>
+          <div class="week-container">
+            <div class="week-title">Week 1 (Feb 23 – Mar 1)</div>
+            <div class="comparison-grid">
+              <div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,500 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">103.0 ➔ 102.0 kg</span></div></div>
+              <div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,400 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">103.0 ➔ 101.5 kg</span></div></div>
+            </div>
+          </div>
+          <div class="week-container">
+            <div class="week-title">Week 2 (Mar 2 – Mar 8)</div>
+            <div class="comparison-grid">
+              <div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,500 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">102.0 ➔ 101.0 kg</span></div></div>
+              <div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,400 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">101.5 ➔ 100.5 kg</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="docket-card border-green">
+          <div class="docket-header text-green">✅ II. EVALUATION &amp; SCORING (MODERATE CUT)</div>
+          <div class="docket-body-text">The Central Calorie Committee utilizes a strict scoring system to evaluate daily intake. Maintaining this specific deficit zone will completely clear chest fat while retaining muscular structure.</div>
+          <div class="highlight-text">We are highly pleased to inform you that maintaining this specific deficit zone will completely clear chest fat while retaining muscular structure with absolutely no flaws. Excellent work!</div>
+          <div class="week-container"><div class="week-title">Week 3 (Mar 9 – Mar 15)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,400 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">101.0 ➔ 100.0 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,100 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">100.5 ➔ 99.7 kg</span></div></div></div></div>
+          <div class="week-container"><div class="week-title">Week 4 (Mar 16 – Mar 22)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,300 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">100.0 ➔ 99.0 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,100 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">99.7 ➔ 98.9 kg</span></div></div></div></div>
+          <div class="week-container"><div class="week-title">Week 5 (Mar 23 – Mar 29)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,300 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">99.0 ➔ 98.0 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,100 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">98.9 ➔ 98.1 kg</span></div></div></div></div>
+          <div class="week-container"><div class="week-title">Week 6 (Mar 30 – Apr 5)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,300 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">98.0 ➔ 97.0 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,100 kcal</span></div><div class="data-line"><span class="data-label">Weight</span><span class="data-value val-wt">98.1 ➔ 97.3 kg</span></div></div></div></div>
+        </div>
+        <div class="docket-card border-blue">
+          <div class="docket-header text-blue">📌 III. TARGET DEFICIT MILESTONES (FINAL STRETCH)</div>
+          <div class="docket-body-text">The following parameters break down your final 21 weeks into monthly operational milestones to track the descent to exactly 80.0 kg.</div>
+          <div class="week-container"><div class="week-title">Weeks 7–10 (Apr 6 – May 3)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,200 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">97.0 ➔ 93.5 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">1,800 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">97.3 ➔ 93.8 kg</span></div></div></div></div>
+          <div class="week-container"><div class="week-title">Weeks 11–14 (May 4 – May 31)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,200 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">93.5 ➔ 90.0 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">1,800 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">93.8 ➔ 90.3 kg</span></div></div></div></div>
+          <div class="week-container"><div class="week-title">Weeks 15–18 (Jun 1 – Jun 28)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,200 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">90.0 ➔ 86.5 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">1,800 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">90.3 ➔ 86.8 kg</span></div></div></div></div>
+          <div class="week-container"><div class="week-title">Weeks 19–22 (Jun 29 – Jul 26)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,200 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">86.5 ➔ 83.0 kg</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">1,800 kcal</span></div><div class="data-line"><span class="data-label">Month End</span><span class="data-value val-wt">86.8 ➔ 83.3 kg</span></div></div></div></div>
+          <div class="week-container"><div class="week-title">Weeks 23–27 (Jul 27 – Aug 30)</div><div class="comparison-grid"><div class="scenario-box"><div class="scenario-title">🏋️ With Gym (2 Hrs)</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">2,200 kcal</span></div><div class="data-line"><span class="data-label">Final Target</span><span class="data-value val-wt" style="color:var(--green);">83.0 ➔ 80.0 kg ✅</span></div></div><div class="scenario-box"><div class="scenario-title">🏠 No Gym</div><div class="data-line"><span class="data-label">Intake</span><span class="data-value val-cal">1,800 kcal</span></div><div class="data-line"><span class="data-label">Final Target</span><span class="data-value val-wt" style="color:var(--green);">83.3 ➔ 80.0 kg ✅</span></div></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="settingsPage">
+  <div class="page-inner">
+    <div class="page-hdr">
+      <button class="back-btn" onclick="closePage('settingsPage')">←</button>
+      <div class="page-title">Settings &amp; Tools</div>
+    </div>
+    <div class="page-scroll">
+      <div class="pcontent">
+        <div class="card" style="margin-bottom:14px">
+          <div class="tog-row">
+            <span class="tog-lbl" id="togLbl">🌙 Night Mode</span>
+            <button class="tog on" id="togBtn" onclick="toggleTheme()">
+              <div class="tog-knob"></div>
+            </button>
+          </div>
+        </div>
+
+        <div class="import-box" style="border-color:var(--green);">
+          <h3 style="color:var(--green);">💾 Backup Your Data</h3>
+          <p>Download your complete History, Weight Log, Food DB, and Plan securely to your device.</p>
+          <button class="import-btn" style="border-color:var(--green);color:var(--green);" onclick="exportData()">⬇ Download JSON Backup</button>
+        </div>
+
+        <div class="import-box">
+          <div class="import-tabs">
+            <button class="imp-tab active" id="tab-plan" onclick="switchTab('plan')">Daily Plan</button>
+            <button class="imp-tab" id="tab-db" onclick="switchTab('db')">Food DB</button>
+          </div>
+          <div id="panel-plan">
+            <div class="import-hint">Paste your structured meal JSON array below.</div>
+            <textarea id="importPlanArea" class="import-textarea"
+              placeholder='[{ "time":"08:00 AM", "name":"Breakfast", "calories":320, "items":[{"food":"Oats","weight":"80g"}] }]'></textarea>
+            <button class="import-btn" onclick="importPlanData()">⬆ Import Plan</button>
+          </div>
+          <div id="panel-db" style="display:none;">
+            <div class="import-hint">
+              Paste your JSON array below. Only valid JSON arrays are accepted.<br>
+              Format: <code>[{"n":"Food Name","c":100,"g":100,"type":"sabji"}]</code>
+            </div>
+            <textarea id="importDbArea" class="import-textarea"
+              placeholder='[{ "n": "Palak Paneer", "c": 221, "g": 100, "type": "sabji" }]'></textarea>
+            <button class="import-btn" onclick="importFoodDB()">💾 Save Food Database</button>
+            <div id="dbStatusText" style="margin-top:10px;font-size:12px;color:var(--sub);text-align:center;"></div>
+          </div>
+        </div>
+
+        <div class="danger-card">
+          <div class="danger-title">⚠️ Danger Zone</div>
+          <button class="btn-danger btn-warning" onclick="resetTodayData()">🧹 Reset Today's Meals &amp; Data</button>
+          <button class="btn-danger" onclick="hardResetApp()">💥 Hard Reset — Delete All Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══ HAPTIC ═══ */
+const haptic = (ms = 40) => navigator.vibrate && navigator.vibrate(ms);
+
+/* ═══ OFFLINE ═══ */
+const updateOnlineStatus = () => {
+  const b = document.getElementById('offlineBadge');
+  if(b) b.style.display = navigator.onLine ? 'none' : 'block';
+};
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+/* ═══ STORAGE HELPERS ═══ */
+const ls    = (k, fb) => { try{ const v=localStorage.getItem(k); return v!=null?JSON.parse(v):fb; }catch{ return fb; }};
+const lsSet = (k, v)  => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} };
+
+/* ═══ TODAY KEY (timezone-safe) ═══ */
+const todayKey = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth()+1).padStart(2,'0');
+  const dd   = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const PALETTE = ['#FF5F7E','#22D3EE','#FFD060','#C084FC','#10F080','#60A5FA','#FB923C'];
+
+function hexToRgb(h){
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '123,92,255';
+}
+function parseTimeMins(val){
+  if(!val) return 0;
+  let c = val.toLowerCase().replace(/\s+/g,'');
+  const pm = c.includes('pm'), am = c.includes('am');
+  const m = c.match(/(\d+):(\d+)/);
+  if(!m) return 0;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  if(pm && h!==12) h+=12; if(am && h===12) h=0;
+  return h*60+min;
+}
+
+function safeParseJSON(raw) {
+  const t = raw.trim();
+  const s = t.indexOf('['), e = t.lastIndexOf(']');
+  if(s===-1 || e===-1 || e<=s) throw new Error("No valid JSON array found.");
+  return JSON.parse(t.substring(s, e+1));
+}
+
+/* ═══ TOAST ═══ */
+let _toastTimer;
+function showToast(msg, color='var(--green)'){
+  const el = document.getElementById('toast');
+  if(!el) return;
+  el.textContent = msg; el.style.color = color;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.classList.remove('show'), 2800);
+}
+
+/* ═══ STATE ═══ */
+let dark       = ls("np_dark", true);
+let streak     = ls("np_streak", 0);
+let lastVis    = ls("np_lastvisit", "");
+let weeklyPlan = ls("np_weeklyPlan", {});
+let meals      = ls("np_meals", []);
+let allChk     = ls("np_checked", {});
+let allWater   = ls("np_water", {});
+let noMaida    = ls("np_nomaida", []);
+let appHistory = ls("np_history", {});
+let foodDB     = ls("np_foodDB", []);
+let calTarget  = ls("np_calTarget", 2800);
+let lastLoadDate = ls("np_lastLoadDate", "");
+let weightLog  = ls("np_weightLog", []);
+
+/* 
+  BUG FIX: Use string keys consistently for check state.
+  Meal IDs must be strings when used as object keys.
+*/
+const getChk   = () => allChk[todayKey()] || {};
+const getWater = () => allWater[todayKey()] || 0;
+const setChk   = v => { allChk[todayKey()] = v; lsSet("np_checked", allChk); };
+const setWater = v => { allWater[todayKey()] = v; lsSet("np_water", allWater); };
+
+/* ═══ QUOTES ═══ */
+const QUOTES = [
+  { text: "The body achieves what the mind believes.", author: "— Unknown" },
+  { text: "Discipline is the bridge between goals and accomplishment.", author: "— Jim Rohn" },
+  { text: "Your body can stand almost anything. It's your mind you have to convince.", author: "— Unknown" },
+  { text: "Small daily improvements are the key to staggering long-term results.", author: "— Unknown" },
+  { text: "Take care of your body. It's the only place you have to live.", author: "— Jim Rohn" },
+  { text: "Every workout is progress. Every meal is a choice.", author: "— 80 KG HQ" },
+  { text: "The secret of getting ahead is getting started.", author: "— Mark Twain" },
+  { text: "Success is the sum of small efforts, repeated day in and day out.", author: "— Robert Collier" }
+];
+function renderQuote(){
+  const idx = new Date().getDate() % QUOTES.length;
+  const q = QUOTES[idx];
+  const qt = document.getElementById('quoteText');
+  const qa = document.getElementById('quoteAuthor');
+  if(qt) qt.textContent = `"${q.text}"`;
+  if(qa) qa.textContent = q.author;
+}
+
+/* ═══ STREAK ═══ */
+function updateStreak(){
+  const t = new Date().toDateString();
+  if(lastVis !== t){
+    const yest = new Date(); yest.setDate(yest.getDate()-1);
+    if(lastVis === "") streak = 1;
+    else if(lastVis === yest.toDateString()) streak++;
+    else streak = 1;
+    lastVis = t;
+    lsSet("np_streak", streak);
+    lsSet("np_lastvisit", lastVis);
+  }
+  const fireEl = document.querySelector('.s-fire');
+  if(fireEl){
+    const extra = Math.min(streak*0.8, 16);
+    const speed = Math.max(0.5, 1.6-(streak*0.05));
+    fireEl.style.fontSize = (22+extra)+'px';
+    fireEl.style.animationDuration = speed+'s';
+  }
+}
+
+/* ═══ THEME ═══ */
+function applyTheme(){
+  document.body.classList.toggle("light", !dark);
+  const b = document.getElementById("togBtn"), l = document.getElementById("togLbl");
+  if(b) b.classList.toggle("on", dark);
+  if(l) l.textContent = dark ? "🌙 Night Mode" : "☀️ Day Mode";
+}
+function toggleTheme(){ haptic(20); dark=!dark; lsSet("np_dark",dark); applyTheme(); }
+
+/* ═══ PAGE NAV ═══ */
+function openPage(id){
+  haptic(20);
+  const page = document.getElementById(id);
+  if(page) page.classList.add("active");
+  if(id==="mealsPage")   { renderMeals(); setTimeout(scrollToNextMeal, 350); }
+  if(id==="historyPage") renderHistory();
+  if(id==="maidaPage")   renderNoMaida();
+  if(id==="weightPage")  renderWeightPage();
+}
+function closePage(id){
+  haptic(20);
+  const page = document.getElementById(id);
+  if(page) page.classList.remove("active");
+}
+
+function switchTab(tab){
+  haptic(15);
+  ['plan','db'].forEach(t => {
+    const elTab = document.getElementById(`tab-${t}`);
+    const elPan = document.getElementById(`panel-${t}`);
+    if(elTab) elTab.classList.toggle('active', tab===t);
+    if(elPan) elPan.style.display = (tab===t) ? 'block' : 'none';
+  });
+  if(tab==='db'){
+    const s = document.getElementById('dbStatusText');
+    if(s) s.textContent = `Current DB Size: ${foodDB.length} items`;
+  }
+}
+
+/* ═══ WATER ═══ */
+function addWater(ml){ haptic(30); setWater(Math.min(getWater()+ml, 6000)); updateWaterUI(); }
+function resetWater(){
+  if(!confirm("Reset today's water intake to 0?")) return;
+  haptic(40); setWater(0); updateWaterUI();
+}
+function updateWaterUI(){
+  const w = getWater(), pct = Math.min(w/5000*100, 100);
+  const el1 = document.getElementById("waterAmt");
+  const el2 = document.getElementById("waterBar");
+  const el3 = document.getElementById("waterPct");
+  if(el1) el1.textContent = w+" ml";
+  if(el2) el2.style.width = pct+"%";
+  if(el3) el3.textContent = Math.round(pct)+"%";
+}
+
+/* ═══ TIME ═══ */
+function updateTimeDisplay(){
+  const inp = document.getElementById('qTimeReal');
+  const disp = document.getElementById('timeDisplay');
+  if(!inp||!disp) return;
+  const val = inp.value;
+  if(!val){ disp.textContent = 'Tap to set time'; return; }
+  const [hh, mm] = val.split(':');
+  let h = parseInt(hh), ap = h>=12?'PM':'AM';
+  if(h>12) h-=12; if(h===0) h=12;
+  disp.textContent = `${h}:${mm} ${ap}`;
+}
+function setDefaultTime(){
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const el = document.getElementById('qTimeReal');
+  if(el){ el.value=`${hh}:${mm}`; updateTimeDisplay(); }
+}
+
+/* ═══ FOOD DB ═══ */
+function importFoodDB(){
+  const raw = document.getElementById('importDbArea').value.trim();
+  if(!raw){ showToast("Paste database code first","var(--a-red)"); return; }
+  try{
+    const parsed = safeParseJSON(raw);
+    if(!Array.isArray(parsed)){ showToast("❌ Format must be an array","var(--a-red)"); return; }
+    const valid = parsed.filter(i => i.n && i.c!==undefined && i.g!==undefined);
+    if(!valid.length){ showToast("❌ Objects must have {n,c,g}","var(--a-red)"); return; }
+    foodDB = valid;
+    lsSet("np_foodDB", foodDB);
+    document.getElementById('importDbArea').value = '';
+    const s = document.getElementById('dbStatusText');
+    if(s) s.textContent = `✅ Saved ${foodDB.length} items`;
+    showToast(`✅ Saved ${foodDB.length} foods!`);
+    haptic([30,50,30]);
+  } catch(e){ showToast("❌ Invalid JSON","var(--a-red)"); }
+}
+
+/* ═══ AUTOCOMPLETE ═══ */
+let currentBaseCal=0, currentBaseWeight=0;
+
+function searchFood(){
+  const inp = document.getElementById('qName');
+  if(!inp) return;
+  const val = inp.value.toLowerCase();
+  const list = document.getElementById('autocomplete-list');
+  list.innerHTML='';
+  if(!val){ list.style.display='none'; return; }
+  let matches = foodDB.filter(f=>f.n.toLowerCase().includes(val));
+  matches.sort((a,b)=>{
+    const aS=a.n.toLowerCase().startsWith(val), bS=b.n.toLowerCase().startsWith(val);
+    if(aS&&!bS) return -1; if(!aS&&bS) return 1;
+    return a.n.localeCompare(b.n);
+  });
+  if(!matches.length){ list.style.display='none'; return; }
+  matches.forEach(m=>{
+    const card = document.createElement('div');
+    card.className='ac-card';
+    const unit = m.unit||`${m.g}g`;
+    const badge = m.type?`<div class="ac-type-badge">${m.type}</div>`:'';
+    let icon='🍽️';
+    if(m.type==='sabji') icon='🍲'; if(m.type==='sweet') icon='🧁';
+    if(m.type==='street') icon='🌮'; if(m.type==='roti') icon='🫓';
+    if(m.type==='fruit') icon='🍎'; if(m.type==='drink') icon='🥛';
+    card.innerHTML=`<div class="ac-info"><div class="ac-title-row"><span>${icon}</span><span class="ac-title">${m.n}</span></div>${badge}</div>
+      <div class="ac-stats"><div class="ac-cal">${m.c} <span style="font-size:.7rem;color:var(--sub)">kcal</span></div><div class="ac-unit">per ${unit}</div></div>`;
+    card.onclick=(e)=>{ haptic(15); e.stopPropagation(); selectFood(m.n, m.c, m.g); };
+    list.appendChild(card);
+  });
+  list.style.display='flex';
+}
+
+function selectFood(name, baseCal, baseWeight){
+  document.getElementById('qName').value=name;
+  currentBaseCal=baseCal; currentBaseWeight=baseWeight;
+  document.getElementById('autocomplete-list').style.display='none';
+  document.getElementById('qWeight').value=baseWeight;
+  calcCals();
+  document.getElementById('qWeight').focus();
+}
+
+function calcCals(){
+  const wEl = document.getElementById('qWeight');
+  const cEl = document.getElementById('qCal');
+  if(!wEl||!cEl) return;
+  const w = parseFloat(wEl.value)||0;
+  if(currentBaseCal>0 && currentBaseWeight>0 && w>0)
+    cEl.value = Math.round((currentBaseCal/currentBaseWeight)*w);
+}
+
+document.addEventListener("click", e=>{
+  if(e.target.id !== "qName"){
+    const l = document.getElementById("autocomplete-list");
+    if(l) l.style.display="none";
+  }
+});
+
+/* ═══ QUICK MEAL SUBMIT ═══ */
+function submitQuickMeal(){
+  const nameEl = document.getElementById('qName');
+  if(!nameEl) return;
+  const name   = nameEl.value.trim();
+  const weight = document.getElementById('qWeight').value.trim();
+  const cal    = parseInt(document.getElementById('qCal').value)||0;
+  const timeval= document.getElementById('qTimeReal').value;
+
+  if(!name){ showToast("Please select/enter a food","var(--a-red)"); haptic([50,50]); return; }
+
+  let timeLabel = "Now";
+  if(timeval){
+    const [hh,mm]=timeval.split(':');
+    let h=parseInt(hh), ap=h>=12?'PM':'AM';
+    if(h>12) h-=12; if(h===0) h=12;
+    timeLabel=`${h}:${mm} ${ap}`;
+  } else {
+    const now=new Date();
+    let h=now.getHours(), min=String(now.getMinutes()).padStart(2,'0'), ap=h>=12?'PM':'AM';
+    if(h>12) h-=12; if(h===0) h=12;
+    timeLabel=`${h}:${min} ${ap}`;
+  }
+
+  // BUG FIX: Use string ID consistently to avoid type mismatch with checked state keys
+  const meal = {
+    id: String(Date.now()), timeLabel, name, calories: cal,
+    items: [{ food: name, weight: weight?weight+"g":"—" }]
+  };
+  meals.push(meal);
+  lsSet("np_meals", meals);
+
+  nameEl.value='';
+  document.getElementById('qWeight').value='';
+  document.getElementById('qCal').value='';
+  currentBaseCal=0; currentBaseWeight=0;
+
+  setDefaultTime();
+  updateCalUI();
+  updateDayHeaders();
+  showToast(`✅ Added ${name}!`);
+  haptic([30,50,30]);
+
+  if(typeof confetti!=='undefined')
+    confetti({ particleCount:100, spread:70, origin:{y:0.6} });
+
+  if(document.getElementById("mealsPage").classList.contains("active")) renderMeals();
+}
+
+/* ═══ DELETE MEAL ═══ */
+function deleteMeal(id){
+  haptic(40);
+  if(!confirm("Remove this meal from today's list?")) return;
+  meals = meals.filter(m => String(m.id) !== String(id));
+  const chk = getChk();
+  delete chk[String(id)];
+  setChk(chk);
+  lsSet("np_meals", meals);
+  updateCalUI(); updateDayHeaders();
+  renderMeals();
+  showToast("🗑 Meal removed", "var(--sub)");
+}
+
+/* ═══ IMPORT PLAN ═══ */
+function importPlanData(){
+  const raw = document.getElementById('importPlanArea').value.trim();
+  if(!raw){ showToast("Paste your plan code first","var(--a-red)"); return; }
+  try{
+    const parsed = safeParseJSON(raw);
+    const today  = DOW[new Date().getDay()];
+    let daily = [];
+    if(Array.isArray(parsed)){
+      weeklyPlan[today] = parsed;
+      lsSet("np_weeklyPlan", weeklyPlan);
+      daily = parsed;
+      showToast(`✅ Plan set for ${today}!`);
+    } else if(parsed && typeof parsed==='object'){
+      const fmt={};
+      for(let k in parsed) fmt[k.charAt(0).toUpperCase()+k.slice(1).toLowerCase()]=parsed[k];
+      weeklyPlan=fmt;
+      lsSet("np_weeklyPlan", weeklyPlan);
+      daily=weeklyPlan[today]||[];
+      showToast("✅ Full weekly plan imported!");
+    } else { showToast("❌ Unrecognised format","var(--a-red)"); return; }
+    applyDailyPlanToMeals(daily);
+    lastLoadDate=todayKey();
+    lsSet("np_lastLoadDate", lastLoadDate);
+    document.getElementById('importPlanArea').value='';
+    haptic([30,50,30]);
+  } catch(e){ showToast("❌ Invalid JSON","var(--a-red)"); }
+}
+
+/* ═══ PLAN HELPERS ═══ */
+function loadDailyPlan(){
+  if(lastLoadDate===todayKey()){ updateCalUI(); updateDayHeaders(); return; }
+  const d = DOW[new Date().getDay()];
+  const daily = weeklyPlan[d]||[];
+  if(daily.length>0) applyDailyPlanToMeals(daily);
+  else { meals=[]; lsSet("np_meals",meals); updateCalUI(); updateDayHeaders(); }
+  lastLoadDate=todayKey();
+  lsSet("np_lastLoadDate", lastLoadDate);
+}
+
+function applyDailyPlanToMeals(arr){
+  meals=arr.map((slot,i)=>({
+    // BUG FIX: Always use string IDs
+    id: String(slot.id||Date.now()+i),
+    timeLabel: slot.time||slot.timeLabel||"—",
+    name: slot.name||slot.food||`Meal ${i+1}`,
+    calories: parseInt(slot.calories)||0,
+    items: slot.items||(slot.food?[{food:slot.food,weight:slot.weight||"—"}]:[])
+  }));
+  lsSet("np_meals", meals);
+  updateCalUI(); updateDayHeaders();
+  if(document.getElementById("mealsPage").classList.contains("active")) renderMeals();
+}
+
+function updateDayHeaders(){
+  const d = DOW[new Date().getDay()];
+  const t = `${d}'s Meals`;
+  const pt = document.getElementById("mealsPageTitle");
+  const nt = document.getElementById("navMealTitle");
+  if(pt) pt.textContent=t;
+  if(nt) nt.textContent=t;
+}
+
+/* ═══ EDIT CAL TARGET ═══ */
+function editCalTarget(){
+  const v = prompt("Enter your daily calorie target:", calTarget);
+  if(v!==null && !isNaN(v) && +v>0){
+    calTarget=parseInt(v);
+    lsSet("np_calTarget", calTarget);
+    updateCalUI();
+    if(document.getElementById("mealsPage").classList.contains("active")) renderMeals();
+  }
+}
+
+/* ═══ CALORIES ═══ */
+function getConsumed(){
+  const chk=getChk();
+  // BUG FIX: Use string conversion for consistent key comparison
+  return meals.filter(m=>chk[String(m.id)]).reduce((s,m)=>s+Number(m.calories),0);
+}
+
+function getCheckedCount(){
+  const chk=getChk();
+  return meals.filter(m=>chk[String(m.id)]).length;
+}
+
+function updateCalUI(){
+  const total=calTarget, cons=getConsumed(), pct=Math.min(cons/total*100,100);
+  const cc=document.getElementById("calConsumed"), cr=document.getElementById("calRemain");
+  const ctl=document.getElementById("calTotalLbl"), cgl=document.getElementById("calGoalLabel");
+  const cb=document.getElementById("calBar"), cp=document.getElementById("calPct");
+  const nms=document.getElementById("navMealSub");
+  if(cc) cc.textContent=cons;
+  if(cr) cr.textContent=total-cons;
+  if(ctl) ctl.textContent="of "+total+" kcal planned";
+  if(cgl) cgl.innerHTML=total+" kcal ✎";
+  if(cb) cb.style.width=pct+"%";
+  if(cp) cp.textContent=Math.round(pct)+"%";
+  const chkCnt=getCheckedCount();
+  if(nms) nms.textContent=meals.length>0?`${chkCnt}/${meals.length} meals done · ${cons} kcal`:"No plan loaded yet";
+}
+
+/* ═══ NO MAIDA ═══ */
+function markNoMaida(){
+  haptic(40);
+  const key=todayKey();
+  const lbl=new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
+  if(!noMaida.find(d=>d.date===key)){ noMaida.push({date:key,label:lbl}); lsSet("np_nomaida",noMaida); }
+  renderNoMaida(); updateStatsBar();
+  if(typeof confetti!=='undefined'){
+    const c=400, def={origin:{y:.7},colors:['#ff0000','#ff7f00','#ffff00','#00ff00','#0000ff','#4b0082','#9400d3']};
+    const fire=(r,o)=>confetti(Object.assign({},def,o,{particleCount:Math.floor(c*r)}));
+    fire(.25,{spread:26,startVelocity:55}); fire(.2,{spread:60});
+    fire(.35,{spread:100,decay:.91,scalar:.8}); fire(.1,{spread:120,startVelocity:25,decay:.92,scalar:1.2});
+    fire(.1,{spread:120,startVelocity:45});
+  }
+}
+
+function renderNoMaida(){
+  const key=todayKey(), cnt=noMaida.length, marked=!!noMaida.find(d=>d.date===key);
+  const cp=document.getElementById("maidaCntPage"), cm=document.getElementById("maidaCntMain");
+  if(cp) cp.textContent=cnt;
+  if(cm) cm.textContent=cnt;
+  const btn=document.getElementById("maidaBtn");
+  if(btn){ btn.textContent=marked?"🎉 Today Marked! Keep Going!":"✅ Mark Today as No-Maida Day!"; btn.classList.toggle("marked",marked); }
+  const chips=document.getElementById("maidaChips");
+  if(chips) chips.innerHTML=noMaida.slice(-12).map(d=>`<div class="chip">✅ ${d.label}</div>`).join("");
+  const nav=document.getElementById("maidaNavSub");
+  if(nav) nav.textContent=cnt>0?`${cnt} clean day${cnt>1?'s':''} 🌟`:"Tap to mark today!";
+}
+
+/* ═══ TOGGLE MEAL ═══ */
+function toggleMeal(id){
+  const chk=getChk();
+  // BUG FIX: Always use string key
+  const key=String(id);
+  chk[key]=!chk[key];
+  setChk(chk);
+  haptic(chk[key]?50:20);
+  if(chk[key] && typeof confetti!=='undefined'){
+    confetti({particleCount:150,spread:80,origin:{y:.6},colors:['#10F080','#60A5FA','#C084FC','#FFD060'],scalar:1.2});
+  }
+  renderMeals(); updateCalUI();
+}
+
+/* ═══ RENDER MEALS ═══ */
+function renderMeals(){
+  const container=document.getElementById("mealList");
+  if(!container) return;
+  const chk=getChk();
+  const d=DOW[new Date().getDay()];
+  const now=new Date();
+  const curMins=now.getHours()*60+now.getMinutes();
+
+  if(!meals.length){
+    container.innerHTML=`<div class="empty-state">
+      <div class="empty-icon">🍽</div>
+      <div style="font-size:18px;font-weight:800;font-family:var(--font-head);margin-bottom:8px">No plan for ${d}</div>
+      <div style="font-size:13px">Use the Quick Add tool below to start tracking!</div>
+    </div>`;
+    const mp1=document.getElementById("mp-cons"); if(mp1) mp1.textContent=0;
+    const mp2=document.getElementById("mp-rem");  if(mp2) mp2.textContent=0;
+    return;
+  }
+
+  let nextIdx=-1;
+  meals.forEach((m,i)=>{
+    const mm=parseTimeMins(m.timeLabel);
+    // BUG FIX: string key for chk
+    if(nextIdx===-1 && mm>curMins && !chk[String(m.id)]) nextIdx=i;
+  });
+  if(nextIdx===-1) meals.forEach((m,i)=>{ if(nextIdx===-1 && !chk[String(m.id)]) nextIdx=i; });
+
+  container.innerHTML=meals.map((m,i)=>{
+    // BUG FIX: string key for chk
+    const isDone=!!chk[String(m.id)];
+    const isNext=(i===nextIdx);
+    const color=PALETTE[i%PALETTE.length];
+    const rgb=hexToRgb(color);
+    const valid=(m.items||[]).filter(x=>x.food&&x.food.trim());
+    const itemsHtml=valid.length
+      ? valid.map(x=>`<div class="ing-row">
+          <div class="ing-left"><div class="ing-bullet" style="background:${color}"></div><span>${x.food}</span></div>
+          <div class="ing-tag">${x.weight||'—'}</div>
+        </div>`).join('')
+      : `<div class="ing-row" style="justify-content:center;border:none"><span style="color:var(--sub);font-size:.8rem;font-style:italic">Activity Checkpoint</span></div>`;
+
+    return `<div class="meal-card ${isDone?'checked':''} ${isNext?'highlight':''}"
+         style="--accent-color:${color};--accent-rgb:${rgb};animation-delay:${i*.06}s">
+      <div class="next-badge">Next Up</div>
+      <div class="mc-content">
+        <div class="mc-top">
+          <span class="mc-time">${m.timeLabel||'—'}</span>
+          <span class="mc-cal">${m.calories||0} kcal</span>
+        </div>
+        <div class="mc-title">${m.name}</div>
+        <div>${itemsHtml}</div>
+      </div>
+      <div class="mchk ${isDone?'on':''}" onclick="toggleMeal('${m.id}')">✓</div>
+      <button class="del-meal" onclick="deleteMeal('${m.id}')" title="Remove meal">✕</button>
+    </div>`;
+  }).join('');
+
+  const cons=getConsumed(), total=calTarget;
+  const mp1=document.getElementById("mp-cons"); if(mp1) mp1.textContent=cons;
+  const mp2=document.getElementById("mp-rem");  if(mp2) mp2.textContent=total-cons;
+}
+
+function scrollToNextMeal(){
+  const el=document.querySelector('.meal-card.highlight');
+  if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+/* ═══ SAVE TO HISTORY ═══ */
+function saveToHistory(){
+  haptic(40);
+  const key=todayKey();
+  appHistory[key]={ calories:getConsumed(), water:getWater(), target:calTarget, savedAt:new Date().toISOString() };
+  lsSet("np_history", appHistory);
+  showToast("✅ Progress Saved!");
+  updateNavSubs(); updateStatsBar();
+}
+
+/* ═══ RENDER HISTORY ═══ */
+function renderHistory(){
+  const container=document.getElementById("historyList");
+  if(!container) return;
+  const keys=Object.keys(appHistory).sort((a,b)=>b.localeCompare(a));
+  if(!keys.length){
+    container.innerHTML=`<div class="h-empty">
+      <div class="h-empty-icon">📊</div>
+      <div style="font-size:18px;font-family:var(--font-head);font-weight:800;margin-bottom:8px">No history yet</div>
+      <div style="font-size:13.5px">Track your meals then save progress to build your log</div>
+    </div>`;
+    return;
+  }
+  container.innerHTML=keys.map((key,idx)=>{
+    const d=new Date(key+'T12:00:00');
+    const lbl=d.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    const data=appHistory[key], nm=!!noMaida.find(n=>n.date===key);
+    const target=data.target||2800;
+    const cp=Math.min((data.calories/target)*100,100), wp=Math.min((data.water/5000)*100,100);
+    return `<div class="h-card" style="animation-delay:${idx*.06}s">
+      ${nm?'<div class="h-badge">🏆</div>':""}
+      <div class="h-date">${lbl}</div>
+      <div class="h-grid">
+        <div class="h-stat"><div class="h-sn" style="color:var(--accent)">${data.calories}</div><div class="h-sl">kcal eaten</div></div>
+        <div class="h-stat"><div class="h-sn" style="color:var(--water)">${data.water}</div><div class="h-sl">ml water</div></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-bottom:6px;font-weight:600;"><span>🔥 Calories</span><span>${Math.round(cp)}%</span></div>
+        <div class="pbar-wrap" style="height:10px"><div class="pbar pb-cal" style="width:${cp}%"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-bottom:6px;font-weight:600;"><span>💧 Hydration</span><span>${Math.round(wp)}%</span></div>
+        <div class="pbar-wrap" style="height:10px"><div class="pbar pb-water" style="width:${wp}%"></div></div>
+      </div>
+      ${nm?`<div style="margin-top:16px;background:rgba(255,208,96,0.08);border:1px solid rgba(255,208,96,0.28);border-radius:12px;padding:10px;font-size:12.5px;color:var(--gold);font-weight:800;text-align:center">🏆 No Maida Day!</div>`:""}
+    </div>`;
+  }).join('');
+}
+
+/* ═══ WEIGHT TRACKER ═══ */
+function logWeight(){
+  haptic(20);
+  const el=document.getElementById('weightInput');
+  if(!el) return;
+  const val=parseFloat(el.value);
+  if(isNaN(val)||val<30||val>300){ showToast("Enter a valid weight (30–300 kg)","var(--a-red)"); haptic([50,50]); return; }
+  const entry={date:todayKey(), weight:val, ts:Date.now()};
+  weightLog=weightLog.filter(e=>e.date!==todayKey());
+  weightLog.push(entry);
+  weightLog.sort((a,b)=>a.date.localeCompare(b.date));
+  lsSet("np_weightLog", weightLog);
+  el.value='';
+  renderWeightPage(); updateWeightNavSub();
+  showToast(`⚖️ Logged ${val} kg!`);
+  if(typeof confetti!=='undefined')
+    confetti({particleCount:80,spread:50,origin:{y:.6},colors:['#10F080','#22D3EE']});
+}
+
+function renderWeightPage(){
+  const list=document.getElementById('weightHistList');
+  const curDisp=document.getElementById('currentWtDisplay');
+  const toGoEl=document.getElementById('toGoKg');
+  const barWrap=document.getElementById('wtGoalBarWrap');
+  if(!list||!curDisp||!toGoEl) return;
+  const TARGET=80.0;
+  if(!weightLog.length){
+    curDisp.textContent='— kg'; toGoEl.textContent='— kg to go';
+    list.innerHTML='<div style="text-align:center;color:var(--sub);padding:30px 20px;font-size:13.5px">No entries yet. Log your first weight above!</div>';
+    if(barWrap) barWrap.style.display='none';
+    return;
+  }
+  const latest=weightLog[weightLog.length-1];
+  const toGo=Math.max(0,latest.weight-TARGET).toFixed(1);
+  curDisp.textContent=`${latest.weight} kg`;
+  toGoEl.textContent=`${toGo} kg to go`;
+  if(barWrap){
+    const sw=weightLog[0].weight;
+    const total=Math.max(1,sw-TARGET);
+    const lost=sw-latest.weight;
+    const pct=Math.min(Math.max(0,(lost/total)*100),100);
+    barWrap.style.display='block';
+    document.getElementById('wtGoalBar').style.width=pct+'%';
+    document.getElementById('wtStartLbl').textContent=`${sw} kg (start)`;
+  }
+  const rev=[...weightLog].reverse();
+  list.innerHTML=rev.map((e,i)=>{
+    const prev=rev[i+1];
+    let diffHtml='';
+    if(prev){
+      const diff=(e.weight-prev.weight).toFixed(1);
+      const cls=diff<0?'we-down':diff>0?'we-up':'we-same';
+      const arrow=diff<0?'▼':diff>0?'▲':'—';
+      diffHtml=`<span class="we-diff ${cls}">${arrow} ${Math.abs(diff)} kg</span>`;
+    }
+    // BUG FIX: Use noon time to avoid timezone date shift
+    const d=new Date(e.date+'T12:00:00');
+    const lbl=d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
+    const isToday=e.date===todayKey();
+    return `<div class="weight-entry" ${isToday?'style="border-color:var(--accent);"':''}>
+      <div><div class="we-date">${lbl}${isToday?' · Today':''}</div></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        ${diffHtml}
+        <div class="we-val" style="color:${e.weight<=TARGET?'var(--green)':'var(--text)'}">${e.weight} kg</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateWeightNavSub(){
+  const el=document.getElementById('weightNavSub');
+  if(!el) return;
+  if(!weightLog.length){ el.textContent='Log your daily weight'; return; }
+  const latest=weightLog[weightLog.length-1];
+  const toGo=Math.max(0,latest.weight-80.0).toFixed(1);
+  el.textContent=`Current: ${latest.weight} kg · ${toGo} kg to goal`;
+}
+
+/* ═══ STATS BAR ═══ */
+function updateStatsBar(){
+  const keys=Object.keys(appHistory);
+  const daysLogged=keys.length;
+  let avgCal='—';
+  if(daysLogged>0){
+    const sum=keys.reduce((s,k)=>s+(appHistory[k].calories||0),0);
+    avgCal=Math.round(sum/daysLogged);
+  }
+  const e1=document.getElementById('statAvgCal');
+  const e2=document.getElementById('statDaysLogged');
+  const sm=document.getElementById('statMaida');
+  if(e1) e1.textContent=avgCal;
+  if(e2) e2.textContent=daysLogged;
+  if(sm) sm.textContent=noMaida.length;
+}
+
+/* ═══ DATA BACKUP ═══ */
+function exportData(){
+  haptic(30);
+  const data={appHistory,weightLog,foodDB,noMaida,weeklyPlan,meals,calTarget,streak,lastVis};
+  const str="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(data,null,2));
+  const a=document.createElement('a');
+  a.setAttribute("href",str);
+  a.setAttribute("download","80kg_backup_"+todayKey()+".json");
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast("✅ Backup Downloaded!");
+}
+
+/* 
+  ═══ RESET TODAY — BUG FIXED ═══
+  Original bug: after clearing lastLoadDate and calling loadDailyPlan(),
+  it would immediately re-import from weeklyPlan, defeating the purpose.
+  Fix: clear meals entirely, set a special "manual reset" flag so 
+  loadDailyPlan knows not to re-import today, and keep lastLoadDate = todayKey()
+  so the plan loader thinks today is already done (blank).
+*/
+function resetTodayData(){
+  haptic([30,50]);
+  if(!confirm("🧹 Reset today's meals, calories, and water?\n\n(Your DB and History remain safe)")){
+    return;
+  }
+  // Clear checked states for today
+  allChk[todayKey()] = {};
+  allWater[todayKey()] = 0;
+  lsSet("np_checked", allChk);
+  lsSet("np_water", allWater);
+
+  // Remove today from history
+  delete appHistory[todayKey()];
+  lsSet("np_history", appHistory);
+
+  // BUG FIX: Clear meals AND set lastLoadDate to todayKey() 
+  // so loadDailyPlan() thinks "already loaded today" and won't re-import the plan
+  meals = [];
+  lsSet("np_meals", meals);
+  lastLoadDate = todayKey();  // <-- KEY FIX: prevents auto-reload from weeklyPlan
+  lsSet("np_lastLoadDate", lastLoadDate);
+
+  updateCalUI();
+  updateWaterUI();
+  updateStatsBar();
+  updateDayHeaders();
+  renderNoMaida();
+
+  if(document.getElementById("mealsPage").classList.contains("active")) renderMeals();
+
+  closePage('settingsPage');
+  showToast("✅ Today's data reset.");
+}
+
+function hardResetApp(){
+  haptic([50,100,50]);
+  if(confirm("💥 Delete ALL data forever? This cannot be undone.")){
+    localStorage.clear(); location.reload();
+  }
+}
+
+/* ═══ DATES & SUBS ═══ */
+function updateDate(){
+  const el=document.getElementById("hdrDate");
+  if(el) el.textContent=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"});
+}
+function updateNavSubs(){
+  const cnt=Object.keys(appHistory).length;
+  const el=document.getElementById("navHistSub");
+  if(el && cnt>0) el.textContent=`${cnt} day${cnt>1?'s':''} logged`;
+}
+
+/* ═══ RENDER HOME ═══ */
+function renderHome(){
+  setDefaultTime();
+  updateDate();
+  updateDayHeaders();
+  const sn=document.getElementById("streakNum");
+  if(sn) sn.textContent=streak;
+  applyTheme();
+  updateCalUI();
+  updateWaterUI();
+  renderNoMaida();
+  updateNavSubs();
+  renderQuote();
+  updateStatsBar();
+  updateWeightNavSub();
+}
+
+/* ═══ MIDNIGHT AUTO-REFRESH ═══ */
+let _lastKey=todayKey();
+setInterval(()=>{
+  if(todayKey()!==_lastKey){ _lastKey=todayKey(); lastLoadDate=''; lsSet("np_lastLoadDate",''); loadDailyPlan(); renderHome(); }
+},30000);
+
+/* ═══ INIT ═══ */
+updateStreak();
+loadDailyPlan();
+renderHome();
+</script>
+</body>
+</html>
